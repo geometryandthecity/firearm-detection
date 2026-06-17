@@ -1,0 +1,9 @@
+{
+  "train_seconds": 780.9504931250121,
+  "n_eval": 5191,
+  "eval_seconds_total": 556.2988300741999,
+  "eval_seconds_mean": 0.10716602390179156,
+  "eval_timeout_seconds": 120.0,
+  "n_timeout": 0,
+  "n_error": 0
+}

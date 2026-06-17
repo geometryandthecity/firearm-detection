@@ -1,0 +1,14 @@
+numpy
+scikit-learn
+matplotlib
+thingi10k
+gpytoolbox
+wildmeshing
+trimesh
+py7zr
+torch
+torchvision
+# bpy (Blender as a Python module) powers the image_classifier's headless
+# Workbench renders. Its wheels are built against one exact CPython -- bpy 5.1.x requires
+# Python 3.13 -- which is why this project targets 3.13.
+bpy

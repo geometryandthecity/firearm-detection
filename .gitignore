@@ -1,0 +1,43 @@
+# Python bytecode files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Scratch / exploratory scripts (ablation + generalization probes), kept local
+ignore/
+# Local helper scripts (bbox stats, base-shapes sync) -- kept on the laptop and
+# lab server for private sync between them, not shipped in the public repo.
+scripts/
+.DS_Store
+.claude/
+
+# Generated datasets (populated by load_data.py) and the PRIVATE base malign
+# shapes (the real device templates in data/base-malign-shapes/ -- request access;
+# see README) are untracked. The repo instead tracks ABC-derived proxy_abc_*.obj
+# stand-ins in the SEPARATE data/proxy-malign-shapes/ so the malign pipeline runs
+# without the private data. Two folders with opposite git status means switching
+# to the real shapes never deletes a tracked file (you populate base-malign-shapes/
+# and the pipeline prefers it automatically -- the proxies are left untouched).
+data/*
+!data/proxy-malign-shapes/
+data/proxy-malign-shapes/*
+!data/proxy-malign-shapes/proxy_abc_*.obj
+
+# output/ (per-detector scores, ROC plots, leaderboard) is tracked on purpose:
+# it's small (~2 MB) and lets results sync between the laptop and the cv12 lab
+# server via git push/pull. The heavy per-detector artifacts (trained weights,
+# render caches) live under detectors/*/trained/ and stay ignored just below.
+
+# Per-detector training output (written by `evaluate.py --train`; regenerable).
+# Pre-shipped assets in detectors/*/data/ stay tracked -- only trained/ is ignored.
+detectors/*/trained/
+
+# Per-detector one-time install output (written by `evaluate.py --install`;
+# regenerable build artifacts / fetched weights). Ignored like trained/.
+detectors/*/installed/
+
+# Virtual environment
+.venv/
+
+# Particle Swarm Code
+swarm-optimization-cpp/

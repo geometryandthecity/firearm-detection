@@ -1,0 +1,10 @@
+{
+  "install_seconds": 0.7261305829742923,
+  "train_seconds": 5078.395887916966,
+  "n_eval": 5191,
+  "eval_seconds_total": 616.4710394139984,
+  "eval_seconds_mean": 0.11875766507686349,
+  "eval_timeout_seconds": 300.0,
+  "n_timeout": 0,
+  "n_error": 0
+}

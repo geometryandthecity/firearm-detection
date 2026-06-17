@@ -1,0 +1,16 @@
+Detector: always_malign
+Area Under ROC (overall): 0.5
+# benign: 1000    # malign: 4191
+
+AUC by adversary (all benign vs that adversary's malign, weakest detection first):
+  degenerate                       AUC=0.5000  (# malign: 700)
+  rigid                            AUC=0.5000  (# malign: 700)
+  tetwild                          AUC=0.5000  (# malign: 691)
+  faceswap                         AUC=0.5000  (# malign: 700)
+  disconnected                     AUC=0.5000  (# malign: 700)
+  jitter                           AUC=0.5000  (# malign: 700)
+
+Overall ROC curve:
+False Positive Rates 0.0, 1.0
+True Positive Rates 0.0, 1.0
+Thresholds inf, 1.0

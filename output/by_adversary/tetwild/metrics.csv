@@ -1,0 +1,8 @@
+detector,auc,n_benign,n_malign
+laplacian_spectrum,0.999988,1000,691
+image_classifier,0.998149,1000,691
+pointnet,0.991996,1000,691
+always_benign,0.500000,1000,691
+always_malign,0.500000,1000,691
+file_hash,0.500000,1000,691
+always_random,0.483405,1000,691
