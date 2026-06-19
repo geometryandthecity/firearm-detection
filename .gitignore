@@ -10,6 +10,9 @@ ignore/
 scripts/
 .DS_Store
 .claude/
+# Local-only Claude Code project guide -- kept out of the public repo (private infra
+# details live in the gitignored memory/, loaded automatically per session).
+CLAUDE.md
 
 # Generated datasets (populated by load_data.py) and the PRIVATE base malign
 # shapes (the real device templates in data/base-malign-shapes/ -- request access;
