@@ -8,6 +8,10 @@ trimesh
 py7zr
 torch
 torchvision
+# Pillow (PIL) rasterizes the triplane_cnn detector's silhouette projections on
+# the CPU (also used by image_classifier to load rendered PNGs); usually pulled in
+# transitively by torchvision/matplotlib, pinned here so the dependency is explicit.
+Pillow
 # bpy (Blender as a Python module) powers the image_classifier's headless
 # Workbench renders. Its wheels are built against one exact CPython -- bpy 5.1.x requires
 # Python 3.13 -- which is why this project targets 3.13.
