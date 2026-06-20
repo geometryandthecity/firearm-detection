@@ -1,0 +1,9 @@
+{
+  "load_seconds": 0.046177999989595264,
+  "n_eval": 5191,
+  "eval_seconds_total": 750.9794579674781,
+  "eval_seconds_mean": 0.1446695160792676,
+  "eval_timeout_seconds": 60.0,
+  "n_timeout": 0,
+  "n_error": 0
+}

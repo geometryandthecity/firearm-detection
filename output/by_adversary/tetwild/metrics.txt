@@ -1,9 +1,10 @@
 Adversary: tetwild
 # malign shapes: 691    # benign (shared negatives): 1000
-Best detector: laplacian_spectrum (AUC = 1.0000)
-Mean AUC across detectors: 0.7105
+Best detector: triplane_cnn (AUC = 1.0000)
+Mean AUC across detectors: 0.7467
 
 Detector ranking (higher AUC = better detection):
+  triplane_cnn                     AUC=1.0000
   laplacian_spectrum               AUC=1.0000
   image_classifier                 AUC=0.9981
   pointnet                         AUC=0.9920
