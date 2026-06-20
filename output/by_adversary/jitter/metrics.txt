@@ -1,10 +1,11 @@
 Adversary: jitter
 # malign shapes: 700    # benign (shared negatives): 1000
 Best detector: laplacian_spectrum (AUC = 1.0000)
-Mean AUC across detectors: 0.7144
+Mean AUC across detectors: 0.7501
 
 Detector ranking (higher AUC = better detection):
   laplacian_spectrum               AUC=1.0000
+  triplane_cnn                     AUC=1.0000
   image_classifier                 AUC=0.9998
   pointnet                         AUC=0.9947
   always_random                    AUC=0.5063

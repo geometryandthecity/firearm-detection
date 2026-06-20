@@ -1,5 +1,6 @@
 detector,auc,n_benign,n_malign
 laplacian_spectrum,1.000000,1000,700
+triplane_cnn,1.000000,1000,700
 image_classifier,0.998333,1000,700
 pointnet,0.994364,1000,700
 always_benign,0.500000,1000,700
