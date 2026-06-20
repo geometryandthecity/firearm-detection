@@ -141,7 +141,11 @@ class ImageClassifier(Detector):
         except OSError:
             key = f"{ap}|{self.n_views}|{self.img_size}|{RENDER_STYLE}"
         h = hashlib.sha1(key.encode()).hexdigest()[:16]
-        return os.path.join(self.trained_dir, "render_cache", h)
+        # Anchored at the package's trained/ root (not self.trained_dir), so the
+        # cache ignores any DETECTOR_TRAINED_SUBDIR model isolation and is shared
+        # across leave-one-out folds: renders depend only on the mesh, not on which
+        # adversary was held out, so re-rendering them per fold would be pure waste.
+        return os.path.join(self._trained_base, "render_cache", h)
 
     def _views_for(self, obj_path):
         """Return the ``n_views`` cached PNG paths for ``obj_path``, rendering if
