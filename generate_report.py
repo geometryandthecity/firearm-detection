@@ -33,6 +33,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn import metrics
 
+from naming import adversary_of
+
 OUTPUT_DIR = "output"
 
 
@@ -64,23 +66,6 @@ def read_timing(detector_dir):
             return json.load(f)
     except (OSError, ValueError):
         return {}
-
-
-def adversary_of(filename):
-    """Return the adversary name from a malign filename, or ``None``.
-
-    Malign shapes are named ``<stem>_<adversary>_<idx>.obj`` where ``<adversary>``
-    is the single adversary that produced the shape (e.g. ``tetwild``) and
-    ``<idx>`` is a numeric counter -- so the adversary is the ``_``-delimited
-    field just before that trailing number. Benign files (``t10k_<id>.obj``) and
-    anything not matching this shape return ``None``, so they stay the shared
-    negatives rather than becoming adversaries.
-    """
-    stem = filename[:-4] if filename.lower().endswith(".obj") else filename
-    parts = stem.split("_")
-    if len(parts) >= 3 and parts[-1].isdigit():
-        return parts[-2]
-    return None
 
 
 def _adv_roc(result, adversary):
@@ -292,8 +277,14 @@ def challenge_matrix(results):
     return adversaries, matrix, counts
 
 
-def write_matrix_heatmap(results, adversaries, matrix, output_dir):
-    """Heatmap of the detector x adversary AUC grid (lower = better evasion)."""
+def write_matrix_heatmap(results, adversaries, matrix, output_dir,
+                         path=None, title=None):
+    """Heatmap of the detector x adversary AUC grid (lower = better evasion).
+
+    ``path``/``title`` override the defaults so the same renderer draws both the
+    standard grid and the leave-one-out grid; ``results`` only supplies the
+    detector column order via ``r["name"]``.
+    """
     detectors = [r["name"] for r in results]
     M = np.array([[matrix[(m, a)] if matrix[(m, a)] is not None else np.nan
                    for m in detectors] for a in adversaries])
@@ -308,22 +299,24 @@ def write_matrix_heatmap(results, adversaries, matrix, output_dir):
             if not np.isnan(M[i, j]):
                 ax.text(j, i, f"{M[i, j]:.2f}", ha="center", va="center",
                         color="white" if M[i, j] < 0.75 else "black", fontsize=8)
-    ax.set_title("Detector × adversary AUC (lower = adversary evades better)")
+    ax.set_title(title or "Detector × adversary AUC (lower = adversary evades better)")
     fig.colorbar(im, ax=ax, label="AUC")
-    path = os.path.join(output_dir, "heatmap_all.png")
+    path = path or os.path.join(output_dir, "heatmap_all.png")
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     return path
 
 
-def write_leaderboard(results, adversaries, matrix, counts, output_dir):
+def write_leaderboard(results, adversaries, matrix, counts, output_dir, loo_link=None):
     """Write (and return) the symmetric challenge report as ``leaderboard.md``.
 
     Sections: detectors ranked by overall AUC (each tagged with the adversary
     that evades it best), a per-detector timing table (install/train/eval cost
     from the most recent run), adversaries ranked by evasion -- mean AUC across
     detectors, lowest first -- (each tagged with the detector that catches it
-    best), and the full detector x adversary AUC matrix linking the two.
+    best), and the full detector x adversary AUC matrix linking the two. When
+    ``loo_link`` is given, a closing section points to the leave-one-out
+    generalization report at that (relative) path.
     """
     detectors = [r["name"] for r in results]
     lines = ["# Leaderboard", ""]
@@ -403,11 +396,191 @@ def write_leaderboard(results, adversaries, matrix, counts, output_dir):
         lines.append("| **Mean** | " + " | ".join(f"{v:.3f}" for v in detector_means)
                      + f" | {_mean(detector_means):.3f} |")
 
+    if loo_link:
+        lines += [
+            "",
+            "## Leave-one-out generalization",
+            "",
+            f"How well do these detectors catch an adversary they were **not** "
+            f"trained on? See [`{loo_link}`]({loo_link}): for each adversary, every "
+            f"detector is retrained on all the *other* adversaries and scored only "
+            f"on the held-out one. The gap from the matrix above measures how much "
+            f"each detector relies on having seen an adversary during training.",
+        ]
+
     text = "\n".join(lines) + "\n"
     path = os.path.join(output_dir, "leaderboard.md")
     with open(path, "w") as f:
         f.write(text)
     return text, path
+
+
+# ---------------------------------------------------------------------------
+# Leave-one-out (LOO) generalization report.
+#
+# ``evaluate.py --loo`` writes, per held-out adversary A, a normal by_detector tree
+# under ``<output_dir>/loo/<A>/by_detector/<detector>/`` whose eval split is *all*
+# benign + only A's malign (the detector having been trained on every adversary
+# but A). So each detector's overall AUC in that fold IS its AUC at catching the
+# unseen adversary A -- exactly comparable to the standard matrix cell (detector,
+# A), where the detector had seen A during training. The difference is the
+# generalization gap.
+# ---------------------------------------------------------------------------
+def collect_loo(loo_dir):
+    """``{held-out adversary: [detector result dicts]}`` for each fold under ``loo_dir``.
+
+    Each fold is read with the same ``collect`` used for the standard run, so a
+    detector that errored a whole fold (no ``outputs.csv``) is simply absent.
+    """
+    out = {}
+    if not os.path.isdir(loo_dir):
+        return out
+    for adv in sorted(os.listdir(loo_dir)):
+        by_detector = os.path.join(loo_dir, adv, "by_detector")
+        if not os.path.isdir(by_detector):
+            continue
+        res = collect(by_detector)
+        if res:
+            out[adv] = res
+    return out
+
+
+def write_loo_leaderboard(detectors, held_out, loo_matrix, counts, std_matrix,
+                          loo_dir):
+    """Write ``loo_dir/leaderboard_loo.md`` and return its ``(text, path)``.
+
+    ``detectors`` is ordered best-generalizer-first and ``held_out``
+    strongest-evader-first (set by the caller). ``loo_matrix[(detector, adv)]`` is
+    the held-out AUC (or ``None``); ``std_matrix`` is the standard run's grid (or
+    ``None``) used only for the generalization-gap section.
+    """
+    det_mean = {m: _mean([loo_matrix.get((m, a)) for a in held_out]) for m in detectors}
+    adv_mean = {a: _mean([loo_matrix.get((m, a)) for m in detectors]) for a in held_out}
+
+    lines = [
+        "# Leave-one-out leaderboard",
+        "",
+        "Each detector is trained on every adversary **but one** and scored only on "
+        "the held-out adversary (against all benign shapes), so this measures "
+        "generalization to an *unseen* disguise rather than recognition of a "
+        "familiar one. Higher AUC = better detection of the unseen adversary.",
+        "",
+        "## Detectors — ranked by mean held-out AUC (generalization)",
+        "",
+        "| Rank | Detector | Mean held-out AUC | Worst held-out adversary (AUC) |",
+        "| ---: | :--- | ---: | :--- |",
+    ]
+    for i, m in enumerate(sorted(detectors, key=lambda m: det_mean[m], reverse=True), 1):
+        row = {a: loo_matrix[(m, a)] for a in held_out if loo_matrix.get((m, a)) is not None}
+        worst = min(row, key=row.get) if row else None
+        worst_str = f"{worst} ({row[worst]:.3f})" if worst is not None else "—"
+        lines.append(f"| {i} | {m} | {det_mean[m]:.4f} | {worst_str} |")
+
+    lines += [
+        "",
+        "## Held-out adversaries — ranked by evasion under LOO (mean AUC, lowest first)",
+        "",
+        "| Rank | Held-out adversary | Mean AUC | Best detector (AUC) | # malign |",
+        "| ---: | :--- | ---: | :--- | ---: |",
+    ]
+    for i, a in enumerate(sorted(held_out, key=lambda a: adv_mean[a]), 1):
+        col = {m: loo_matrix[(m, a)] for m in detectors if loo_matrix.get((m, a)) is not None}
+        best = max(col, key=col.get) if col else None
+        best_str = f"{best} ({col[best]:.3f})" if best is not None else "—"
+        lines.append(f"| {i} | {a} | {adv_mean[a]:.4f} | {best_str} | {counts.get(a, 0)} |")
+
+    lines += [
+        "",
+        "## Held-out adversary × detector AUC matrix",
+        "",
+        "| Held-out adversary \\ Detector | " + " | ".join(detectors) + " | Mean |",
+        "| :--- | " + " | ".join(["---:"] * (len(detectors) + 1)) + " |",
+    ]
+    for a in held_out:
+        cells = [loo_matrix.get((m, a)) for m in detectors]
+        cell_strs = [f"{v:.3f}" if v is not None else "—" for v in cells]
+        lines.append(f"| {a} | " + " | ".join(cell_strs) + f" | {_mean(cells):.3f} |")
+    det_means = [_mean([loo_matrix.get((m, a)) for a in held_out]) for m in detectors]
+    lines.append("| **Mean** | " + " | ".join(f"{v:.3f}" for v in det_means)
+                 + f" | {_mean(det_means):.3f} |")
+
+    # Generalization gap: standard AUC (adversary seen in training) minus LOO AUC
+    # (held out). Positive => the detector leaned on having seen this adversary.
+    if std_matrix is not None:
+        gap = {(m, a): (std_matrix.get((m, a)) - loo_matrix.get((m, a)))
+               for m in detectors for a in held_out
+               if std_matrix.get((m, a)) is not None and loo_matrix.get((m, a)) is not None}
+        if gap:
+            lines += [
+                "",
+                "## Generalization gap (standard AUC − held-out AUC)",
+                "",
+                "Drop in detection when the adversary is held out of training. "
+                "Larger (more positive) = the detector relied more on having seen "
+                "that adversary; ~0 = it generalizes; negative = it did *better* "
+                "unseen (usually noise on an already-easy adversary).",
+                "",
+                "| Held-out adversary \\ Detector | " + " | ".join(detectors) + " | Mean |",
+                "| :--- | " + " | ".join(["---:"] * (len(detectors) + 1)) + " |",
+            ]
+            for a in held_out:
+                cells = [gap.get((m, a)) for m in detectors]
+                cell_strs = [f"{v:+.3f}" if v is not None else "—" for v in cells]
+                lines.append(f"| {a} | " + " | ".join(cell_strs) + f" | {_mean(cells):+.3f} |")
+            det_gap_means = [_mean([gap.get((m, a)) for a in held_out]) for m in detectors]
+            lines.append("| **Mean** | " + " | ".join(f"{v:+.3f}" for v in det_gap_means)
+                         + f" | {_mean(det_gap_means):+.3f} |")
+
+    text = "\n".join(lines) + "\n"
+    path = os.path.join(loo_dir, "leaderboard_loo.md")
+    with open(path, "w") as f:
+        f.write(text)
+    return text, path
+
+
+def build_loo_report(loo_dir, std_matrix, output_dir):
+    """Build every LOO artifact under ``loo_dir`` (leaderboard, heatmap, per-fold
+    ROC overlays), reusing the standard renderers. Returns the leaderboard path,
+    or ``None`` when there are no LOO outputs yet.
+    """
+    loo_by_adv = collect_loo(loo_dir)
+    if not loo_by_adv:
+        return None
+    held_out = sorted(loo_by_adv)
+    detectors = sorted({r["name"] for res in loo_by_adv.values() for r in res})
+
+    # Each fold's eval set is all-benign + only-the-held-out-adversary malign, so a
+    # detector's overall AUC there is its held-out-adversary AUC.
+    loo_matrix, counts = {}, {}
+    for adv, res in loo_by_adv.items():
+        for r in res:
+            loo_matrix[(r["name"], adv)] = r["auc"]
+            counts[adv] = max(counts.get(adv, 0), r["n_malign"])
+    for m in detectors:
+        for adv in held_out:
+            loo_matrix.setdefault((m, adv), None)
+
+    # Per-fold ROC overlay (one curve per detector) -- write_per_adversary filters
+    # a fold's malign by the held-out adversary, which is all of it. Rebuilt from
+    # scratch so stale folds never linger.
+    by_adversary_dir = os.path.join(loo_dir, "by_adversary")
+    shutil.rmtree(by_adversary_dir, ignore_errors=True)
+    for adv, res in loo_by_adv.items():
+        write_per_adversary(adv, res, by_adversary_dir)
+
+    # Heatmap: detectors best-generalizer-first, adversaries strongest-evader-first.
+    det_mean = {m: _mean([loo_matrix.get((m, a)) for a in held_out]) for m in detectors}
+    adv_mean = {a: _mean([loo_matrix.get((m, a)) for m in detectors]) for a in held_out}
+    det_order = sorted(detectors, key=lambda m: det_mean[m], reverse=True)
+    adv_order = sorted(held_out, key=lambda a: adv_mean[a])
+    write_matrix_heatmap(
+        [{"name": m} for m in det_order], adv_order, loo_matrix, output_dir,
+        path=os.path.join(loo_dir, "heatmap_loo.png"),
+        title="LOO: detector × held-out adversary AUC (trained without that adversary)")
+
+    _, path = write_loo_leaderboard(det_order, adv_order, loo_matrix, counts,
+                                    std_matrix, loo_dir)
+    return path
 
 
 def main():
@@ -445,8 +618,15 @@ def main():
         print("[note] no adversary tags parsed from malign filenames; "
               "by_adversary/ and heatmap skipped.")
 
+    # Leave-one-out generalization report (only if `evaluate.py --loo` has run).
+    loo_dir = os.path.join(args.output_dir, "loo")
+    loo_path = build_loo_report(loo_dir, matrix if adversaries else None, args.output_dir)
+    loo_link = os.path.relpath(loo_path, args.output_dir) if loo_path else None
+    if loo_path:
+        written += [os.path.join(loo_dir, "heatmap_loo.png"), loo_path]
+
     text, leaderboard_path = write_leaderboard(
-        results, adversaries, matrix, counts, args.output_dir)
+        results, adversaries, matrix, counts, args.output_dir, loo_link=loo_link)
     written.append(leaderboard_path)
 
     print(text)
@@ -456,6 +636,8 @@ def main():
     print(f"  {by_detector_dir}/<detector>/  (roc.png, metrics.txt)")
     if adversaries:
         print(f"  {by_adversary_dir}/<adversary>/  (roc.png, metrics.csv, metrics.txt)")
+    if loo_path:
+        print(f"  {loo_dir}/by_adversary/<adversary>/  (roc.png, metrics.csv, metrics.txt)")
 
 
 if __name__ == "__main__":

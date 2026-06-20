@@ -45,6 +45,15 @@ and generate the leaderboard and precision-recall plots with
 python generate_report.py
 ```
 
+### Leave-one-out generalization
+
+To measure how well detectors catch an adversary they were **not** trained on, run the leave-one-out regime: it loops over the adversaries, and for each one retrains every detector on all the *others* and scores it only on the held-out adversary.
+```bash
+python evaluate.py --loo --install
+python generate_report.py
+```
+This writes one tree per held-out adversary under `output/loo/<adversary>/by_detector/` and, after `generate_report.py`, an `output/loo/leaderboard_loo.md` (with a heatmap and a standard-vs-leave-one-out generalization-gap matrix) linked from the main leaderboard. Each fold trains from scratch, so the run costs roughly *#adversaries* times a normal training run; restrict it while iterating with `--detectors NAME…` and/or `--adversaries NAME…`. Folds train into isolated `trained/loo/<adversary>/` caches, so the standard full-data models from `evaluate.py --train` are left untouched.
+
 
 # Contributing
 
