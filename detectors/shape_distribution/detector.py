@@ -129,8 +129,8 @@ class _D2CNN(torch.nn.Module):
     kernel + 1)`` "input neurons"; two ``tanh`` hidden layers (the paper's
     ``1020`` then ``15`` neurons) and a final linear unit map those to one logit.
     The paper's two softmax outputs (firearm/knife) collapse to this single
-    malign logit for binary detection. ``hidden1`` defaults to the conv-output
-    width, matching the paper where the first hidden layer equals ``N_input``.
+    malign logit for binary detection. ``hidden1`` defaults to ``n_bins - kernel + 1``,
+    matching the paper where the first hidden layer equals ``N_input`` (for ``conv_channels=1``).
 
     A fixed per-bin **input standardization** ``(x - feat_mean) / feat_std``
     precedes the convolution. The raw D2 vector sums to 1 over ``n_bins`` bins, so
