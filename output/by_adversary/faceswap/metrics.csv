@@ -1,5 +1,6 @@
 detector,auc,n_benign,n_malign
 laplacian_spectrum,1.000000,1000,700
+shape_distribution,0.999917,1000,700
 image_classifier,0.999750,1000,700
 pointnet,0.993444,1000,700
 file_hash,0.500714,1000,700
