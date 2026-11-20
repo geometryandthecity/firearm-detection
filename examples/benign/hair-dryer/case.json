@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "case_id": "hair_dryer_001",
+  "template_id": "hair_dryer_exterior",
+  "file": "hair-dryer.obj",
+  "sha256": "3bb9f4d8c6515af40bc2dbe4403dc6ff1327fb1d491c5170d9c777e673918c6a",
+  "description": "Hair dryer exterior with a recessed concentrator nozzle, five intake bars, two handle controls and a short power cord",
+  "proposed_label": 0,
+  "proposed_class": "benign",
+  "label_review": "pending",
+  "status": "In Progress",
+  "coordinate_units": "arbitrary",
+  "evaluation_role": "supplemental_development_probe",
+  "grouping_rule": "The original template and all transformed or remeshed copies must remain in one split.",
+  "third_party_mesh_inputs": [],
+  "publication_license": null,
+  "preview": "preview.png",
+  "preview_colors_in_obj": false,
+  "mesh_check": "mesh-check.json",
+  "local_proxy_results": "proxy-results.json"
+}

@@ -1,0 +1,66 @@
+{
+  "file": "hair-dryer.obj",
+  "sha256": "3bb9f4d8c6515af40bc2dbe4403dc6ff1327fb1d491c5170d9c777e673918c6a",
+  "file_bytes": 432968,
+  "counts": {
+    "vertices": 5999,
+    "triangles": 12014,
+    "edges": 18021,
+    "connected_components": 1,
+    "boundary_edges": 0,
+    "nonmanifold_edges": 0,
+    "invalid_vertex_links": 0,
+    "duplicate_faces": 0,
+    "duplicate_vertices": 0,
+    "unreferenced_vertices": 0,
+    "euler_characteristic": -8
+  },
+  "checks": {
+    "finite_coordinates": true,
+    "valid_triangle_indices": true,
+    "nondegenerate_triangles": true,
+    "one_connected_component": true,
+    "every_edge_has_two_incident_faces": true,
+    "each_vertex_link_is_one_cycle": true,
+    "consistent_orientation": true,
+    "positive_signed_volume": true,
+    "no_duplicate_faces": true,
+    "no_duplicate_vertices": true,
+    "no_unreferenced_vertices": true,
+    "geometry_only_records": true,
+    "gpytoolbox_read_matches_saved_mesh": true,
+    "repository_sanitizer_preserves_mesh": true,
+    "repository_reads_one_component": true
+  },
+  "measurements": {
+    "coordinate_units": "arbitrary",
+    "bounding_box_min": [
+      -1.104999989,
+      -2.539810129,
+      -0.673591614
+    ],
+    "bounding_box_max": [
+      1.835000038,
+      1.492809889,
+      0.673618233
+    ],
+    "surface_area": 19.02133704005445,
+    "minimum_triangle_area": 0.0007419360268586981,
+    "median_triangle_area": 0.0015756270524929328,
+    "minimum_triangle_angle_degrees": 34.690015326378074,
+    "signed_volume": 2.902241055744652
+  },
+  "reader": {
+    "name": "gpytoolbox",
+    "version": "0.3.8"
+  },
+  "self_intersection_check": "not_performed",
+  "classification_evaluation": "not_performed",
+  "repository_compatibility": {
+    "source": "detectors/utils.py",
+    "source_sha256": "5b27f34f44996e8d36f8c629a9292dee71fae902dcadff633bf21d6c50efb459",
+    "sanitizer_preserves_all_vertices_and_faces": true,
+    "components_after_sanitizing": 1
+  },
+  "passed": true
+}
